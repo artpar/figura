@@ -59,6 +59,51 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - Ground plane >= 100 cm.
 - Resize handler installed on window.
 
+## playback.js
+
+| | |
+|---|---|
+| **Input** | `mesh: THREE.SkinnedMesh`, `clip: THREE.AnimationClip` |
+| **Output** | Playback handle (object with methods) |
+| **Tests** | `playback.test.js` |
+
+**API:**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `update()` | void | Read clock delta, call `mixer.update()`. Called once per frame. |
+| `play()` | void | Resume playback. Idempotent. |
+| `pause()` | void | Freeze playback. Idempotent. |
+| `isPlaying()` | boolean | `true` when animation is advancing. |
+| `setSpeed(n)` | void | Set playback speed multiplier. |
+| `getSpeed()` | number | Current speed multiplier. |
+| `getTime()` | number | Current playback time in seconds. |
+| `setTime(t)` | void | Seek to time `t`. Clamps to `[0, duration]`. |
+| `getDuration()` | number | Clip duration in seconds. |
+
+**Invariants**
+- Mixer created on `mesh` (SkinnedMesh), not Group.
+- Clock is internal — `update()` encapsulates `clock.getDelta()` → `mixer.update(delta)`.
+- `play()`/`pause()` use `action.paused` property.
+- Speed sets `action.timeScale` (per-action, not per-mixer).
+- Time is always in seconds.
+
+## ui/controls.js
+
+| | |
+|---|---|
+| **Input** | `playback: PlaybackHandle`, `container: HTMLElement` |
+| **Output** | `{ update(): void, dispose(): void }` |
+| **Tests** | `ui/controls.test.js` |
+
+**DOM elements:** play/pause button, speed slider (0.25x–2x), time scrubber (0 to duration).
+
+**Invariants**
+- Reads/writes only through playback API. No direct mixer/action/clock access.
+- `update()` syncs scrubber position from `playback.getTime()`. Called from render loop.
+- `dispose()` removes all DOM elements and event listeners.
+- All elements appended to `container`, not document.body.
+
 ## main.js
 
 | | |
@@ -69,9 +114,10 @@ Every module has one contract. If a feature needs two contracts, it's two module
 **Invariants**
 - No logic, no transforms, no conditionals.
 - Loads assets via `bvh.js` and `character.js`.
-- Passes outputs to `retarget.js`.
-- Creates mixer on `mesh` (SkinnedMesh), not on `model` (Group).
-- Render loop: `mixer.update`, `controls.update`, `renderer.render`.
+- Passes outputs to `retarget.js`, then to `playback.js`.
+- Creates playback via `createPlayback(mesh, clip)`.
+- Creates UI via `createControls(playback, container)`.
+- Render loop: `playback.update`, `ui.update`, `controls.update`, `renderer.render`.
 
 ## Rules for adding modules
 

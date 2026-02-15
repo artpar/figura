@@ -6,20 +6,24 @@ BVH motion capture → GLTF character retargeting pipeline. Loads `pirouette.bvh
 
 ## Current state
 
-Rendering fixes applied. Camera, clipping, unit system, and world matrix propagation corrected. Regression test suite added — 21 tests guard the invariants that broke. Run `npm test`.
+Phase 1 (playback control) complete. Mixer/clock extracted from main.js into `playback.js`. DOM controls (play/pause, speed slider, time scrubber) in `ui/controls.js`. UI talks only through playback API — no direct Three.js access. 37 tests across 6 files. Run `npm test`.
 
 ## Architecture
 
 ```
-main.js              orchestrator — load, retarget, play, render loop
+main.js              orchestrator — load, retarget, wire playback + UI, render loop
   scene.js           renderer, camera, lights, ground, OrbitControls, resize
   bvh.js             BVHLoader — no transforms, data stays in native cm
   character.js       GLTFLoader → extracts SkinnedMesh (mesh) + scene (model), applies S(100) + updateMatrixWorld
   retarget.js        bone name map + SkeletonUtils.retargetClip wrapper
+  playback.js        mixer/clock/action encapsulation — play/pause/speed/seek API
+  ui/controls.js     DOM controls (button, sliders) — talks only through playback API
   scene.test.js      scene boundary invariants (cm-scale)
   bvh.test.js        BVH data purity (no unit conversions)
   character.test.js  loader contract (frustumCulled, scale, SkinnedMesh)
   retarget.test.js   bone map coverage + output clip validity
+  playback.test.js   playback API contract (real BVH/GLB assets)
+  ui/controls.test.js  DOM creation, event wiring, dispose (jsdom + mock playback)
 ```
 
 ### Unit system
@@ -34,7 +38,8 @@ loadCharacter(url) → { model, mesh }       model=gltf.scene (for scene graph),
 
 scene.add(model)                           adds character to scene
 retargetAnimation(mesh, skeleton, clip)    produces new AnimationClip for the character
-AnimationMixer(mesh).clipAction(clip)      plays it
+createPlayback(mesh, clip)                 wraps mixer/clock/action, exposes control API
+createControls(playback, container)        DOM controls wired through playback API
 ```
 
 ### Key contract: SkeletonUtils.retargetClip
@@ -81,16 +86,18 @@ Unmapped BVH bones (skipped): `lButtock`, `rButtock`, `leftEye`, `rightEye`, fin
 
 ## Test suite
 
-`npm test` runs vitest with 21 tests across 4 files:
+`npm test` runs vitest with 37 tests across 6 files:
 
 | File | Tests | What it guards |
 |------|-------|----------------|
 | `scene.test.js` | 5 | Camera near/far, position, controls target, ground size are cm-scale |
 | `bvh.test.js` | 4 | Bone offsets and hip track values are cm, not meters. No `*0.01` scaling. |
-| `character.test.js` | 5 | `frustumCulled=false`, scale (1,1,1), SkinnedMesh with skeleton. Mocks GLTFLoader, tests real `loadCharacter` traversal. |
+| `character.test.js` | 7 | `frustumCulled=false`, scale (1,1,1), SkinnedMesh with skeleton. Mocks GLTFLoader, tests real `loadCharacter` traversal. |
 | `retarget.test.js` | 5 | Every BONE_MAP name exists in both skeletons. Output clip has duration, tracks, hip position in cm range. |
+| `playback.test.js` | 9 | All API methods present, play/pause/speed/time/duration contract. Uses real BVH/GLB assets. |
+| `ui/controls.test.js` | 7 | DOM element creation, event wiring (pause/play/speed/scrub), update sync, dispose cleanup. Uses jsdom + mock playback. |
 
-Tests run in ~500ms with no browser required. BVH tests parse the real `pirouette.bvh` file. Character tests mock GLTFLoader and exercise the real `loadCharacter` code path. Scene tests mock WebGLRenderer and exercise the real `createScene`.
+Tests run in ~800ms with no browser required. BVH/retarget/playback tests parse real asset files. UI tests use jsdom environment with mock playback handle.
 
 ## What to verify next
 
