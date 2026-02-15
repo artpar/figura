@@ -5,19 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Figura</title>
   <style>
-    * { margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
-    body { display: flex; }
+    body { display: flex; background: #0e0e14; }
     #main-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
     #canvas-wrap { flex: 1; position: relative; overflow: hidden; min-width: 0; min-height: 0; }
     canvas { display: block; }
+
+    /* --- Timeline --- */
     #timeline {
       height: 200px;
       flex-shrink: 0;
       background: #12121a;
       display: flex;
       flex-direction: column;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      border-top: 1px solid rgba(255,255,255,0.06);
     }
     .figura-transport {
       height: 32px;
@@ -27,7 +29,7 @@
       padding: 0 12px;
       background: rgba(0,0,0,0.4);
       border-bottom: 1px solid rgba(255,255,255,0.06);
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
       font-size: 13px;
       color: rgba(255,255,255,0.8);
       flex-shrink: 0;
@@ -36,31 +38,29 @@
       padding: 3px 12px;
       border: none;
       border-radius: 3px;
-      background: rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.1);
       color: #fff;
       font-size: 12px;
       cursor: pointer;
       flex-shrink: 0;
     }
-    .figura-transport-btn:hover {
-      background: rgba(255,255,255,0.2);
-    }
+    .figura-transport-btn:hover { background: rgba(255,255,255,0.16); }
     .figura-transport-time {
       font-family: 'SF Mono', 'Fira Code', monospace;
       font-size: 12px;
-      color: rgba(255,255,255,0.6);
+      color: rgba(255,255,255,0.5);
       flex-shrink: 0;
     }
     .figura-transport-speed-label {
       margin-left: auto;
       font-size: 11px;
-      color: rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.35);
       flex-shrink: 0;
     }
     .figura-transport-speed {
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.1);
       border-radius: 3px;
       font-size: 12px;
       padding: 2px 4px;
@@ -73,108 +73,226 @@
       min-height: 0;
       cursor: crosshair;
     }
-    .figura-script-panel {
-      width: 320px;
+
+    /* --- Script Panel --- */
+    .sp {
+      --sp-bg: #141418;
+      --sp-surface: #1a1a22;
+      --sp-border: rgba(255,255,255,0.06);
+      --sp-text: #b0b4be;
+      --sp-text-dim: #5a5e6a;
+      --sp-text-muted: #383c48;
+      --sp-accent: #7b8af0;
+      --sp-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      --sp-sans: system-ui, -apple-system, sans-serif;
+
+      width: 340px;
       height: 100%;
       flex-shrink: 0;
-      background: rgba(18, 18, 22, 0.88);
-      backdrop-filter: blur(12px);
+      background: var(--sp-bg);
+      border-left: 1px solid var(--sp-border);
       display: flex;
       flex-direction: column;
-      font-family: system-ui, sans-serif;
+      position: relative;
       z-index: 10;
-      transition: width 0.15s ease;
+      transition: width 0.12s ease;
     }
-    .figura-script-panel.collapsed {
-      width: 36px !important;
+    .sp.collapsed {
+      width: 40px !important;
       overflow: hidden;
     }
-    .figura-script-panel.collapsed .figura-script-header span,
-    .figura-script-panel.collapsed .figura-script-editor-wrap {
-      display: none;
-    }
-    .figura-script-handle {
+    .sp.collapsed .sp-title-row,
+    .sp.collapsed .sp-editor-wrap,
+    .sp.collapsed .sp-ref { display: none !important; }
+    .sp.collapsed .sp-header { justify-content: center; padding: 0; }
+    .sp.collapsed .sp-actions { gap: 2px; flex-direction: column; padding: 8px 0; }
+
+    /* Resize handle */
+    .sp-handle {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 5px;
+      top: 0; left: -1px;
+      width: 3px;
       height: 100%;
       cursor: col-resize;
       z-index: 11;
+    }
+    .sp-handle::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 1px;
+      width: 1px;
+      height: 100%;
       background: transparent;
+      transition: background 0.15s;
     }
-    .figura-script-handle:hover,
-    .figura-script-handle:active {
-      background: rgba(100, 140, 255, 0.35);
-    }
-    .figura-script-header {
-      padding: 10px 10px 10px 14px;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      flex-shrink: 0;
+    .sp-handle:hover::after { background: var(--sp-accent); opacity: 0.4; }
+
+    /* Header */
+    .sp-header {
+      padding: 12px 12px 12px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+      border-bottom: 1px solid var(--sp-border);
+      flex-shrink: 0;
     }
-    .figura-script-collapse {
-      width: 22px;
-      height: 22px;
-      border: none;
-      border-radius: 4px;
-      background: transparent;
-      color: rgba(255, 255, 255, 0.4);
+    .sp-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .sp-title {
+      font-family: var(--sp-sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sp-text-dim);
+      letter-spacing: 0.02em;
+    }
+    .sp-status {
+      font-family: var(--sp-mono);
       font-size: 10px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      white-space: nowrap;
+    }
+
+    /* Action buttons */
+    .sp-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .sp-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--sp-text-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 0;
+      transition: color 0.1s, background 0.1s;
+    }
+    .sp-btn:hover {
+      background: rgba(255,255,255,0.05);
+      color: var(--sp-text-dim);
+    }
+    .sp-btn-active,
+    .sp-btn-active:hover {
+      color: var(--sp-accent);
+      background: rgba(123,138,240,0.08);
+    }
+    .sp-btn svg {
+      transition: transform 0.15s ease;
+    }
+
+    /* Help reference */
+    .sp-ref {
+      padding: 12px 16px 8px;
+      background: var(--sp-surface);
+      border-bottom: 1px solid var(--sp-border);
+      overflow-y: auto;
+      max-height: 55%;
       flex-shrink: 0;
     }
-    .figura-script-collapse:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.8);
+    .sp-ref-sec {
+      margin-bottom: 10px;
     }
-    .figura-script-editor-wrap {
+    .sp-ref-sec:last-child { margin-bottom: 4px; }
+    .sp-ref-label {
+      font-family: var(--sp-sans);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--sp-text-dim);
+      letter-spacing: 0.04em;
+      margin-bottom: 3px;
+    }
+    .sp-ref-row {
+      font-family: var(--sp-mono);
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--sp-text);
+    }
+    .sp-ref-row code {
+      color: var(--sp-accent);
+      font-weight: 500;
+    }
+    .sp-ref-val {
+      color: var(--sp-text);
+    }
+    .sp-ref-dim {
+      font-family: var(--sp-sans);
+      font-size: 10px;
+      color: var(--sp-text-muted);
+      margin-left: 4px;
+    }
+    .sp-ref-code {
+      font-family: var(--sp-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--sp-text);
+      background: rgba(0,0,0,0.25);
+      border-radius: 4px;
+      padding: 6px 8px;
+      margin: 3px 0;
+      white-space: pre;
+    }
+    .sp-ref-bones {
+      font-family: var(--sp-mono);
+      font-size: 10px;
+      line-height: 1.7;
+      color: var(--sp-text-dim);
+    }
+    .sp-ref::-webkit-scrollbar { width: 4px; }
+    .sp-ref::-webkit-scrollbar-track { background: transparent; }
+    .sp-ref::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+    /* Editor area */
+    .sp-editor-wrap {
       flex: 1;
       display: flex;
       overflow: hidden;
     }
-    .figura-script-gutter {
-      width: 36px;
+    .sp-gutter {
+      width: 32px;
       flex-shrink: 0;
-      padding: 10px 6px 10px 0;
+      padding: 12px 6px 12px 0;
       text-align: right;
-      color: rgba(255, 255, 255, 0.18);
-      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-      font-size: 12px;
-      line-height: 1.6;
+      color: var(--sp-text-muted);
+      font-family: var(--sp-mono);
+      font-size: 11px;
+      line-height: 1.65;
       overflow: hidden;
       white-space: pre;
-      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      border-right: 1px solid var(--sp-border);
       user-select: none;
     }
-    .figura-script-editor {
+    .sp-editor {
       flex: 1;
       background: transparent;
       border: none;
       outline: none;
-      color: rgba(220, 225, 235, 0.92);
-      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-      font-size: 12px;
-      line-height: 1.6;
-      padding: 10px 12px;
+      color: var(--sp-text);
+      font-family: var(--sp-mono);
+      font-size: 11px;
+      line-height: 1.65;
+      padding: 12px 14px;
       resize: none;
       tab-size: 2;
+      caret-color: var(--sp-accent);
     }
-    .figura-script-editor::placeholder {
-      color: rgba(255, 255, 255, 0.2);
-    }
+    .sp-editor::placeholder { color: var(--sp-text-muted); }
+    .sp-editor::selection { background: rgba(123,138,240,0.18); }
+    .sp-editor::-webkit-scrollbar { width: 4px; }
+    .sp-editor::-webkit-scrollbar-track { background: transparent; }
+    .sp-editor::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sp-editor::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
   </style>
 </head>
 <body>

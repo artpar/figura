@@ -10,7 +10,9 @@ main.js (orchestrator — wiring only, no logic)
   ├── bvh.js              → { skeleton, clip }
   ├── character.js        → { model, mesh }
   ├── retarget.js         → AnimationClip
-  ├── dsl.js              → { generate, parse, compile }
+  ├── hdsl.js             → { parse, expand, indexLines }
+  ├── clipLibrary.js      → { create → register, extract, duration, has, sources }
+  ├── dsl.js              → { generate, parse, compile, lineForTime }
   ├── playback.js         → { update, play, pause, isPlaying, setSpeed, getSpeed, getTime, setTime, getDuration, setClip }
   ├── faceCamera.js       → { camera, update, zoom }
   ├── viewport.js         → { render, dispose }
@@ -64,9 +66,19 @@ Everything is in centimeters. BVH data is cm. GLB bone positions are cm. GLB mes
 - `index.html` — `#main-col` column wrapper stacks viewport + timeline; `#canvas-wrap` unchanged for viewport.js
 - Removed `camera.js` and `ui/cameraPanel.js` (camera preset widget)
 
-### Phase 6: Future
+### Phase 6: High-level Motion DSL (done)
+- `hdsl.js` — parse/expand/indexLines for high-level choreography DSL
+- `clipLibrary.js` — register BVH sources as parsed keyframes, extract time-range slices
+- `main.js` — pipeline: HDSL text → hdsl.parse → load sources → hdsl.expand → dsl.parse → dsl.compile → retarget → playback
+- Script panel now shows HDSL syntax: `bpm`, `source`, `clip`, `pose`, `@M:B` sequence entries
+- Transforms: mirror (L↔R swap), speed (time scaling), reverse (keyframe order)
+- Pose interpolation: slerp rotations, lerp positions, easing curves, hold beats
+- Low-level DSL (dsl.js) remains as compilation target — downstream unchanged
+
+### Phase 7: Future
 - Animation quality: rest-pose offset corrections, crossfade/blending
 - `ik.js` — post-process skeleton per frame (foot contact, ground locking)
+- Body-part layering for HDSL (apply clips/poses to specific body groups)
 
 ## Test commands
 

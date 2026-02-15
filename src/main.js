@@ -3,7 +3,9 @@ import { loadBVH } from './bvh.js';
 import { loadCharacter } from './character.js';
 import { retargetAnimation } from './retarget.js';
 import { createPlayback } from './playback.js';
-import { generate, parse, compile } from './dsl.js';
+import { generate, parse as dslParse, compile, lineForTime } from './dsl.js';
+import { parse as hdslParse, expand, indexLines } from './hdsl.js';
+import { create as createClipLibrary } from './clipLibrary.js';
 import { createFaceCamera } from './faceCamera.js';
 import { createViewport } from './viewport.js';
 import { createTimeline } from './ui/timeline.js';
@@ -12,34 +14,70 @@ import { createScriptPanel } from './ui/scriptPanel.js';
 const canvas = document.getElementById('viewport');
 const { scene, camera, renderer, controls } = createScene(canvas);
 
-const { skeleton: bvhSkeleton, clip: bvhClip } = await loadBVH('/assets/pirouette.bvh');
 const character = await loadCharacter('/assets/character.glb');
 scene.add(character.model);
 
-const dslText = generate(bvhSkeleton, bvhClip, 1/30);
+const lib = createClipLibrary();
 
-const parsed = parse(dslText);
-const { skeleton: compiledSkel, clip: compiledClip } = compile(parsed, bvhSkeleton);
-const initialClip = retargetAnimation(character.mesh, compiledSkel, compiledClip);
+// Load a BVH source, register in library, return its skeleton
+async function loadSource(name) {
+  const { skeleton, clip } = await loadBVH(`/assets/${name}.bvh`);
+  const dslText = generate(skeleton, clip, 1 / 30);
+  lib.register(name, dslParse(dslText));
+  return skeleton;
+}
+
+// Load initial source
+const bvhSkeleton = await loadSource('pirouette');
+
+// Compile HDSL text → retargeted AnimationClip + low-level parsed data
+async function compilePipeline(text) {
+  const hdsl = hdslParse(text);
+
+  // Load any new sources
+  for (const name of hdsl.sources) {
+    if (!lib.has(name)) await loadSource(name);
+  }
+
+  const lowDsl = expand(hdsl, lib);
+  const parsed = dslParse(lowDsl);
+  const { skeleton: s, clip: c } = compile(parsed, bvhSkeleton);
+  const retClip = retargetAnimation(character.mesh, s, c);
+  return { clip: retClip, parsed };
+}
+
+// Default HDSL script
+const defaultScript = `# Pirouette
+bpm 120
+
+source pirouette
+
+clip full from pirouette 0.0-${lib.duration('pirouette').toFixed(1)}
+
+@1:1  clip full
+`;
+
+const { clip: initialClip, parsed: initialParsed } = await compilePipeline(defaultScript);
 
 const playback = createPlayback(character.mesh, initialClip);
 
 const timeline = createTimeline(playback, document.getElementById('timeline'));
-timeline.setKeyframes(parsed);
+timeline.setKeyframes(initialParsed);
+
+let lineIndex = indexLines(defaultScript);
 
 const scriptPanel = createScriptPanel();
-scriptPanel.setText(dslText);
+scriptPanel.setText(defaultScript);
 
-scriptPanel.onChange((text) => {
+scriptPanel.onChange(async (text) => {
   try {
-    const p = parse(text);
-    const { skeleton: s, clip: c } = compile(p, bvhSkeleton);
-    const retClip = retargetAnimation(character.mesh, s, c);
+    const { clip: retClip, parsed: p } = await compilePipeline(text);
     playback.setClip(retClip);
     timeline.setKeyframes(p);
+    lineIndex = indexLines(text);
     scriptPanel.showStatus('Applied', '#4f4');
   } catch (e) {
-    console.error('DSL compile error:', e);
+    console.error('HDSL compile error:', e);
     scriptPanel.showStatus('Error', '#f44');
   }
 });
@@ -57,6 +95,7 @@ function animate() {
   requestAnimationFrame(animate);
   playback.update();
   timeline.update();
+  scriptPanel.scrollToLine(lineForTime(lineIndex, playback.getTime()));
   controls.update();
   faceView.update();
   viewport.render();

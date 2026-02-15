@@ -126,6 +126,30 @@ export function parse(text) {
   return { duration, keyframes };
 }
 
+export function indexLines(text) {
+  const lines = text.split('\n');
+  const index = [];
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith('@')) {
+      index.push({ time: parseFloat(trimmed.slice(1)), line: i });
+    }
+  }
+  return index;
+}
+
+export function lineForTime(index, time) {
+  if (index.length === 0) return -1;
+  let lo = 0;
+  let hi = index.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >>> 1;
+    if (index[mid].time <= time) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  return hi >= 0 ? index[hi].line : -1;
+}
+
 export function compile(parsed, referenceSkeleton) {
   const { duration, keyframes } = parsed;
   const DEG2RAD = Math.PI / 180;

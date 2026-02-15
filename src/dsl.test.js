@@ -4,7 +4,7 @@ import path from 'node:path';
 import * as THREE from 'three';
 import { BVHLoader } from 'three/addons/loaders/BVHLoader.js';
 import { BONE_MAP } from './retarget.js';
-import { generate, parse, compile } from './dsl.js';
+import { generate, parse, compile, indexLines, lineForTime } from './dsl.js';
 
 const DSL_BONES = Object.values(BONE_MAP);
 
@@ -158,6 +158,69 @@ describe('compile', () => {
     const posTracks = clip.tracks.filter(t => t.name.endsWith('.position'));
     expect(posTracks.length).toBe(1);
     expect(posTracks[0].name).toBe('hip.position');
+  });
+});
+
+describe('indexLines', () => {
+  it('returns time and line number for each @marker in generated DSL', () => {
+    const text = generate(bvh.skeleton, bvh.clip, 1/30);
+    const index = indexLines(text);
+
+    expect(index.length).toBeGreaterThan(0);
+    expect(index[0].time).toBe(0);
+    expect(typeof index[0].line).toBe('number');
+
+    // Verify line numbers point to actual @time lines
+    const lines = text.split('\n');
+    for (const entry of index) {
+      expect(lines[entry.line].trim()).toMatch(/^@/);
+      expect(parseFloat(lines[entry.line].trim().slice(1))).toBeCloseTo(entry.time, 3);
+    }
+  });
+
+  it('returns empty array for text with no @markers', () => {
+    expect(indexLines('duration 1.00\n# comment')).toEqual([]);
+  });
+
+  it('entries are sorted by time', () => {
+    const text = generate(bvh.skeleton, bvh.clip, 0.5);
+    const index = indexLines(text);
+    for (let i = 1; i < index.length; i++) {
+      expect(index[i].time).toBeGreaterThan(index[i - 1].time);
+    }
+  });
+});
+
+describe('lineForTime', () => {
+  it('returns line of last @marker at or before given time', () => {
+    const text = generate(bvh.skeleton, bvh.clip, 0.5);
+    const index = indexLines(text);
+
+    // At time 0, should return the first @0.0000 line
+    expect(lineForTime(index, 0)).toBe(index[0].line);
+
+    // At time 0.75 (between 0.5 and 1.0), should return the @0.5 line
+    expect(lineForTime(index, 0.75)).toBe(index[1].line);
+
+    // At exact time of last entry, should return that line
+    const last = index[index.length - 1];
+    expect(lineForTime(index, last.time)).toBe(last.line);
+  });
+
+  it('returns -1 for empty index', () => {
+    expect(lineForTime([], 1.0)).toBe(-1);
+  });
+
+  it('returns -1 for time before first entry', () => {
+    const index = [{ time: 1.0, line: 5 }];
+    expect(lineForTime(index, 0.5)).toBe(-1);
+  });
+
+  it('returns last entry line for time past end', () => {
+    const text = generate(bvh.skeleton, bvh.clip, 0.5);
+    const index = indexLines(text);
+    const last = index[index.length - 1];
+    expect(lineForTime(index, 9999)).toBe(last.line);
   });
 });
 

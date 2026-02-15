@@ -92,6 +92,62 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - Time is always in seconds.
 - `setClip()` stops the old action, uncaches it, creates a new action for the new clip, preserves speed, and auto-plays.
 
+## clipLibrary.js
+
+| | |
+|---|---|
+| **Input** | Parsed low-level DSL data (from `dsl.parse()`) |
+| **Output** | Library handle with register/extract/duration API |
+| **Tests** | `clipLibrary.test.js` |
+
+**API:**
+
+| Method | Input | Output |
+|--------|-------|--------|
+| `create()` | (none) | Library handle |
+| `register(name, parsed)` | Name + parsed DSL data | void |
+| `extract(name, start, end)` | Name + time range | `{ duration, keyframes }` (rebased to 0) |
+| `duration(name)` | Name | Source duration in seconds |
+| `has(name)` | Name | boolean |
+| `sources()` | (none) | `string[]` of registered names |
+
+**Invariants**
+- Keyframes returned by `extract()` have times rebased: `kf.time - startTime`.
+- `extract()` uses epsilon tolerance (1e-6) for time boundary inclusion.
+- `duration()` returns the parsed `duration` value from the registered source.
+- Throws for unknown source names.
+
+## hdsl.js
+
+| | |
+|---|---|
+| **Input** | See individual functions |
+| **Output** | See individual functions |
+| **Tests** | `hdsl.test.js` |
+
+**Functions:**
+
+| Function | Input | Output |
+|----------|-------|--------|
+| `parse(text)` | HDSL text string | `{ bpm, sources, clips, poses, sequence }` |
+| `expand(parsed, lib)` | Parsed HDSL + clip library | Low-level DSL text string |
+| `indexLines(text)` | HDSL text string | `[{ time, line }, ...]` — beat-time and line number for each `@M:B` marker |
+
+**Invariants**
+- `parse` is pure string parsing — no Three.js dependency.
+- Syntax: `bpm N`, `source name`, `clip name from source start-end`, `pose name` (with indented bone lines), `@M:B clip/pose name [modifiers]`.
+- Beat math: `seconds = (measure-1) * 4 * (60/bpm) + (beat-1) * (60/bpm)`. Assumes 4/4 time.
+- `expand` resolves clips from library, applies transforms (mirror, speed, reverse), interpolates poses (slerp for rotations, lerp for positions), and merges overrides.
+- Pose override rule: pose bones win over clip bones at the same frame. Unmentioned bones in a pose pass through from clip.
+- `pose rest` is built-in: empty bone set (no overrides).
+- Easing types: `linear`, `ease-in`, `ease-out`, `ease-in-out`. Default is `linear`.
+- `hold N` keeps pose fully applied for N beats before interpolating to next pose.
+- Mirror swaps L↔R bone names and negates hip X-position and Y-rotation.
+- Speed scales keyframe times by 1/N. Reverse reverses keyframe order.
+- Output is valid low-level DSL text (parseable by `dsl.parse()`).
+- `indexLines` maps `@M:B` markers to beat-time seconds using the script's `bpm` value.
+- Euler↔quaternion conversions for slerp match Three.js ZXY order exactly.
+
 ## dsl.js
 
 | | |
@@ -107,6 +163,8 @@ Every module has one contract. If a feature needs two contracts, it's two module
 | `generate(skeleton, clip, interval?)` | BVH skeleton + clip | DSL text string |
 | `parse(text)` | DSL text string | `{ duration, keyframes: [{ time, bones }] }` |
 | `compile(parsed, referenceSkeleton)` | Parsed DSL + skeleton | `{ skeleton, clip }` |
+| `indexLines(text)` | DSL text string | `[{ time, line }, ...]` — line index for each `@time` marker |
+| `lineForTime(index, time)` | Line index + seconds | 0-based line number of last `@time ≤ t` (-1 if empty) |
 
 **Invariants**
 - `generate` defaults to native frame rate (reads `clip.tracks[0].times`). Explicit `interval` overrides.
@@ -117,6 +175,8 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - `compile` converts Euler degrees back to quaternions (ZXY order) and builds `QuaternionKeyframeTrack` + `VectorKeyframeTrack` (hip).
 - Round-trip fidelity at native frame rate: max 0.11° rotation error, 0.07 cm position error.
 - Track names use BVH bone names: `boneName.quaternion`, `hip.position`.
+- `indexLines` is pure string scan — no Three.js dependency. Returns entries sorted by appearance (ascending time).
+- `lineForTime` uses binary search. Returns -1 when index is empty or time is before first entry.
 
 ## faceCamera.js
 
@@ -128,7 +188,7 @@ Every module has one contract. If a feature needs two contracts, it's two module
 
 **Invariants**
 - PerspectiveCamera with FOV 50, near=1, far=5000 (cm-scale).
-- `update()` reads head bone world position/quaternion, places camera ~140cm in front of face.
+- `update()` reads head bone world position/quaternion, places camera ~440cm in front of face.
 - Camera looks at eye level (~5cm above head center).
 - No unit conversions — head bone world position is already in cm.
 - Aspect ratio set externally by viewport.js.
@@ -181,18 +241,21 @@ Every module has one contract. If a feature needs two contracts, it's two module
 | | |
 |---|---|
 | **Input** | (none) |
-| **Output** | `{ getText(), setText(text), onChange(callback), showStatus(text, color), update(), dispose() }` |
+| **Output** | `{ getText(), setText(text), onChange(callback), showStatus(text, color), scrollToLine(n), update(), dispose() }` |
 | **Tests** | `ui/scriptPanel.test.js` |
 
 **Invariants**
 - Textarea editor for DSL text with line number gutter.
 - Left-edge drag handle for resizing (min 200px, max 60% viewport).
-- Collapse/expand toggle button in header.
+- Collapse/expand toggle button (SVG chevron) in header.
+- Help button (`?` icon) toggles inline syntax reference card.
 - Tab key inserts 2 spaces.
 - `onChange(callback)` fires with 300ms debounce after user input.
 - `showStatus(text, color)` displays a status indicator in the header that fades after 1.2s.
 - Appended to `document.body`.
+- `scrollToLine(n)` scrolls textarea so line `n` is at ~1/3 from top. No-op if textarea is focused (user editing), if `n < 0`, or if `n` is the same as the last call. Dedup resets on `setText()`. Syncs gutter scrollTop.
 - `dispose()` removes panel from DOM and cleans up document-level event listeners.
+- CSS classes use `sp-` prefix. Design tokens via CSS custom properties on `.sp` root.
 
 ## main.js
 
@@ -203,14 +266,16 @@ Every module has one contract. If a feature needs two contracts, it's two module
 
 **Invariants**
 - No logic, no transforms, no conditionals.
-- Loads BVH via `bvh.js`, character via `character.js`.
-- Generates DSL text from BVH skeleton+clip via `dsl.generate()`.
-- DSL text is the single source of truth. Both initial load and edits go through the same path: `parse → compile → retarget → playback`.
-- Shows DSL in script panel. On edit: `parse → compile → retarget → playback.setClip()`.
+- Loads character via `character.js`.
+- Creates clip library via `clipLibrary.create()`. Loads BVH sources on demand via `loadBVH → generate → dslParse → lib.register`.
+- HDSL text is the single source of truth. Both initial load and edits go through the same pipeline: `hdslParse → load new sources → expand → dslParse → compile → retarget → playback`.
+- Shows HDSL script in script panel. On edit: async `compilePipeline(text) → playback.setClip()`.
+- Caches loaded sources in clip library — re-edits don't re-fetch.
 - Finds `mixamorigHead` bone and creates face camera via `createFaceCamera(headBone)`.
 - Creates viewport via `createViewport(renderer, canvas, [cameras...], scene, controls, [onWheel...])`.
-- Creates timeline via `createTimeline(playback, container)`. Calls `timeline.setKeyframes(parsed)` on initial load and DSL edits.
-- Render loop: `playback.update`, `timeline.update`, `controls.update`, `faceView.update`, `viewport.render`.
+- Creates timeline via `createTimeline(playback, container)`. Calls `timeline.setKeyframes(parsed)` on initial load and HDSL edits.
+- Builds `lineIndex` from HDSL text via `hdsl.indexLines()`. Rebuilds on edits. Uses `dsl.lineForTime()` for scroll sync.
+- Render loop: `playback.update`, `timeline.update`, `scriptPanel.scrollToLine(lineForTime(...))`, `controls.update`, `faceView.update`, `viewport.render`.
 
 ## Rules for adding modules
 
