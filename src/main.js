@@ -11,17 +11,19 @@ import { createViewport } from './viewport.js';
 import { createTimeline } from './ui/timeline.js';
 import { createScriptPanel } from './ui/scriptPanel.js';
 
+const base = import.meta.env.BASE_URL;
+
 const canvas = document.getElementById('viewport');
 const { scene, camera, renderer, controls } = createScene(canvas);
 
-const character = await loadCharacter('/assets/character.glb');
+const character = await loadCharacter(`${base}assets/character.glb`);
 scene.add(character.model);
 
 const lib = createClipLibrary();
 
 // Load a BVH source, register in library, return its skeleton
 async function loadSource(name) {
-  const { skeleton, clip } = await loadBVH(`/assets/${name}.bvh`);
+  const { skeleton, clip } = await loadBVH(`${base}assets/${name}.bvh`);
   const dslText = generate(skeleton, clip, 1 / 30);
   lib.register(name, dslParse(dslText));
   return skeleton;
