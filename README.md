@@ -48,6 +48,10 @@ npm run dev
 
 Opens at `http://localhost:5173`. Requires a Mixamo-rigged `.glb` in `public/assets/character.glb` and at least one `.bvh` in `public/assets/`.
 
+## Deployment
+
+Pushes to `main` auto-deploy to GitHub Pages via `.github/workflows/deploy.yml`. Vite builds with `base: '/figura/'` so asset paths resolve correctly under the subdirectory.
+
 ## Tests
 
 ```bash

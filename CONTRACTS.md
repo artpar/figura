@@ -266,6 +266,7 @@ Every module has one contract. If a feature needs two contracts, it's two module
 
 **Invariants**
 - No logic, no transforms, no conditionals.
+- Asset paths prefixed with `import.meta.env.BASE_URL` (Vite sets `/` in dev, `/figura/` on GitHub Pages).
 - Loads character via `character.js`.
 - Creates clip library via `clipLibrary.create()`. Loads BVH sources on demand via `loadBVH → generate → dslParse → lib.register`.
 - HDSL text is the single source of truth. Both initial load and edits go through the same pipeline: `hdslParse → load new sources → expand → dslParse → compile → retarget → playback`.
