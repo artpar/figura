@@ -15,6 +15,10 @@ export function createScriptPanel() {
   title.textContent = 'Movement Script';
   header.appendChild(title);
 
+  const status = document.createElement('span');
+  status.style.cssText = 'font-size:10px; opacity:0; transition:opacity 0.3s;';
+  header.appendChild(status);
+
   const collapseBtn = document.createElement('button');
   collapseBtn.className = 'figura-script-collapse';
   collapseBtn.textContent = '\u25B6';
@@ -143,6 +147,14 @@ export function createScriptPanel() {
 
     onChange(callback) {
       changeCallback = callback;
+    },
+
+    showStatus(text, color) {
+      status.textContent = text;
+      status.style.color = color;
+      status.style.opacity = '1';
+      clearTimeout(status._timer);
+      status._timer = setTimeout(() => { status.style.opacity = '0'; }, 1200);
     },
 
     update() {},

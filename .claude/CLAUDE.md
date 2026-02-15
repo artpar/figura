@@ -15,7 +15,7 @@ main.js (orchestrator — wiring only, no logic)
   ├── camera.js           → { setPreset, getPreset, getAzimuth, setAzimuth, update }
   ├── ui/controls.js      → { update, dispose }
   ├── ui/cameraPanel.js   → { update, dispose }
-  └── ui/scriptPanel.js   → { getText, setText, onChange, update, dispose }
+  └── ui/scriptPanel.js   → { getText, setText, onChange, showStatus, update, dispose }
 ```
 
 ## Unit system
@@ -58,5 +58,5 @@ Everything is in centimeters. BVH data is cm. GLB bone positions are cm. GLB mes
 
 ## Test commands
 
-- `npm test` — runs vitest, 78 tests, ~1.5s, no browser needed
+- `npm test` — runs vitest, 82 tests, ~1.5s, no browser needed
 - `npm run dev` — vite dev server with hot reload

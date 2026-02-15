@@ -16,7 +16,7 @@ const { skeleton: bvhSkeleton, clip: bvhClip } = await loadBVH('/assets/pirouett
 const character = await loadCharacter('/assets/character.glb');
 scene.add(character.model);
 
-const dslText = generate(bvhSkeleton, bvhClip);
+const dslText = generate(bvhSkeleton, bvhClip, 1/30);
 
 function clipFromDSL(text) {
   const parsed = parse(text);
@@ -30,7 +30,14 @@ const scriptPanel = createScriptPanel();
 scriptPanel.setText(dslText);
 
 scriptPanel.onChange((text) => {
-  playback.setClip(clipFromDSL(text));
+  try {
+    const retClip = clipFromDSL(text);
+    playback.setClip(retClip);
+    scriptPanel.showStatus('Applied', '#4f4');
+  } catch (e) {
+    console.error('DSL compile error:', e);
+    scriptPanel.showStatus('Error', '#f44');
+  }
 });
 
 const cameraApi = createCamera(camera, controls);

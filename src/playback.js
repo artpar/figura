@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export function createPlayback(mesh, clip) {
-  const mixer = new THREE.AnimationMixer(mesh);
+  let mixer = new THREE.AnimationMixer(mesh);
   let action = mixer.clipAction(clip);
   let currentClip = clip;
   const clock = new THREE.Clock();
@@ -47,8 +47,9 @@ export function createPlayback(mesh, clip) {
 
     setClip(newClip) {
       const speed = action.timeScale;
-      action.stop();
-      mixer.uncacheAction(currentClip);
+      mixer.stopAllAction();
+      mixer.uncacheRoot(mesh);
+      mixer = new THREE.AnimationMixer(mesh);
       currentClip = newClip;
       action = mixer.clipAction(newClip);
       action.timeScale = speed;

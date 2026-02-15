@@ -42,7 +42,9 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - `targetMesh` must be a SkinnedMesh (not a Group). Has `.skeleton.bones`.
 - `BONE_MAP` keys are target (GLB) bone names. Values are source (BVH) bone names.
 - Every BONE_MAP key exists in the real GLB skeleton. Every BONE_MAP value exists in the real BVH skeleton.
-- Hip scale derived from data: `targetHipBone.position.y / sourceHipTrack.values[1]`.
+- Both skeletons are Mixamo-compatible (same rest pose / bone local frames). Source local rotations apply directly as target local rotations — no rest-pose correction needed.
+- Direct track rename: BVH bone names → `.bones[targetName].property` format. No SkeletonUtils dependency.
+- Hip position tracks scaled by `targetHipBone.position.y / sourceHipTrack.values[1]`.
 - Output clip has `duration > 0`, tracks in cm-scale.
 
 ## scene.js
@@ -181,7 +183,7 @@ Every module has one contract. If a feature needs two contracts, it's two module
 | | |
 |---|---|
 | **Input** | (none) |
-| **Output** | `{ getText(), setText(text), onChange(callback), update(), dispose() }` |
+| **Output** | `{ getText(), setText(text), onChange(callback), showStatus(text, color), update(), dispose() }` |
 | **Tests** | `ui/scriptPanel.test.js` |
 
 **Invariants**
@@ -190,6 +192,7 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - Collapse/expand toggle button in header.
 - Tab key inserts 2 spaces.
 - `onChange(callback)` fires with 300ms debounce after user input.
+- `showStatus(text, color)` displays a status indicator in the header that fades after 1.2s.
 - Appended to `document.body`.
 - `dispose()` removes panel from DOM and cleans up document-level event listeners.
 
