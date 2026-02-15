@@ -158,6 +158,39 @@ describe('scriptPanel', () => {
     });
   });
 
+  it('has an example select dropdown', () => {
+    expect(document.querySelector('.sp-examples')).not.toBeNull();
+    expect(document.querySelector('.sp-examples').tagName).toBe('SELECT');
+  });
+
+  it('setExamples populates dropdown options', () => {
+    panel.setExamples([
+      { id: 'a', title: 'Alpha' },
+      { id: 'b', title: 'Beta' },
+    ]);
+    const select = document.querySelector('.sp-examples');
+    expect(select.options.length).toBe(2);
+    expect(select.options[0].value).toBe('a');
+    expect(select.options[0].textContent).toBe('Alpha');
+    expect(select.options[1].value).toBe('b');
+    expect(select.options[1].textContent).toBe('Beta');
+  });
+
+  it('onSelectExample fires callback with selected id on change', () => {
+    panel.setExamples([
+      { id: 'x', title: 'X' },
+      { id: 'y', title: 'Y' },
+    ]);
+    const cb = vi.fn();
+    panel.onSelectExample(cb);
+
+    const select = document.querySelector('.sp-examples');
+    select.value = 'y';
+    select.dispatchEvent(new Event('change'));
+
+    expect(cb).toHaveBeenCalledWith('y');
+  });
+
   it('dispose removes panel from DOM and cleans up listeners', () => {
     panel.dispose();
     expect(document.querySelector('.sp')).toBeNull();

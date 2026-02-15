@@ -148,6 +148,21 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - `indexLines` maps `@M:B` markers to beat-time seconds using the script's `bpm` value.
 - Euler↔quaternion conversions for slerp match Three.js ZXY order exactly.
 
+## examples.js
+
+| | |
+|---|---|
+| **Input** | (none) |
+| **Output** | `examples: Array<{ id: string, title: string, script: string }>` |
+| **Tests** | `examples.test.js` |
+
+**Invariants**
+- Pure data module. No DOM, no Three.js.
+- `examples[0]` is the default loaded at startup.
+- All examples use `pirouette` as the only source.
+- Every script parses with `hdsl.parse()` and expands to valid low-level DSL.
+- All `id` values are unique.
+
 ## dsl.js
 
 | | |
@@ -241,7 +256,7 @@ Every module has one contract. If a feature needs two contracts, it's two module
 | | |
 |---|---|
 | **Input** | (none) |
-| **Output** | `{ getText(), setText(text), onChange(callback), showStatus(text, color), scrollToLine(n), update(), dispose() }` |
+| **Output** | `{ getText(), setText(text), onChange(callback), setExamples(list), onSelectExample(callback), showStatus(text, color), scrollToLine(n), update(), dispose() }` |
 | **Tests** | `ui/scriptPanel.test.js` |
 
 **Invariants**
@@ -251,6 +266,8 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - Help button (`?` icon) toggles inline syntax reference card.
 - Tab key inserts 2 spaces.
 - `onChange(callback)` fires with 300ms debounce after user input.
+- `setExamples(list)` populates a `<select>` dropdown with `[{ id, title }]` entries.
+- `onSelectExample(callback)` registers callback that fires with selected `id` on change.
 - `showStatus(text, color)` displays a status indicator in the header that fades after 1.2s.
 - Appended to `document.body`.
 - `scrollToLine(n)` scrolls textarea so line `n` is at ~1/3 from top. No-op if textarea is focused (user editing), if `n < 0`, or if `n` is the same as the last call. Dedup resets on `setText()`. Syncs gutter scrollTop.
@@ -270,6 +287,7 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - Loads character via `character.js`.
 - Creates clip library via `clipLibrary.create()`. Loads BVH sources on demand via `loadBVH → generate → dslParse → lib.register`.
 - HDSL text is the single source of truth. Both initial load and edits go through the same pipeline: `hdslParse → load new sources → expand → dslParse → compile → retarget → playback`.
+- Default script from `examples[0].script`. Example dropdown wired via `scriptPanel.setExamples()` / `onSelectExample()` — selecting an example calls `setText` + `compilePipeline` directly (no debounce).
 - Shows HDSL script in script panel. On edit: async `compilePipeline(text) → playback.setClip()`.
 - Caches loaded sources in clip library — re-edits don't re-fetch.
 - Finds `mixamorigHead` bone and creates face camera via `createFaceCamera(headBone)`.

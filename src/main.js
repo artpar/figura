@@ -10,6 +10,7 @@ import { createFaceCamera } from './faceCamera.js';
 import { createViewport } from './viewport.js';
 import { createTimeline } from './ui/timeline.js';
 import { createScriptPanel } from './ui/scriptPanel.js';
+import { examples } from './examples.js';
 
 const base = import.meta.env.BASE_URL;
 
@@ -48,16 +49,7 @@ async function compilePipeline(text) {
   return { clip: retClip, parsed };
 }
 
-// Default HDSL script
-const defaultScript = `# Pirouette
-bpm 120
-
-source pirouette
-
-clip full from pirouette 0.0-${lib.duration('pirouette').toFixed(1)}
-
-@1:1  clip full
-`;
+const defaultScript = examples[0].script;
 
 const { clip: initialClip, parsed: initialParsed } = await compilePipeline(defaultScript);
 
@@ -77,6 +69,24 @@ scriptPanel.onChange(async (text) => {
     playback.setClip(retClip);
     timeline.setKeyframes(p);
     lineIndex = indexLines(text);
+    scriptPanel.showStatus('Applied', '#4f4');
+  } catch (e) {
+    console.error('HDSL compile error:', e);
+    scriptPanel.showStatus('Error', '#f44');
+  }
+});
+
+scriptPanel.setExamples(examples.map(ex => ({ id: ex.id, title: ex.title })));
+
+scriptPanel.onSelectExample(async (id) => {
+  const ex = examples.find(e => e.id === id);
+  if (!ex) return;
+  scriptPanel.setText(ex.script);
+  try {
+    const { clip: retClip, parsed: p } = await compilePipeline(ex.script);
+    playback.setClip(retClip);
+    timeline.setKeyframes(p);
+    lineIndex = indexLines(ex.script);
     scriptPanel.showStatus('Applied', '#4f4');
   } catch (e) {
     console.error('HDSL compile error:', e);

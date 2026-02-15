@@ -12,12 +12,13 @@ main.js (orchestrator — wiring only, no logic)
   ├── retarget.js         → AnimationClip
   ├── hdsl.js             → { parse, expand, indexLines }
   ├── clipLibrary.js      → { create → register, extract, duration, has, sources }
+  ├── examples.js         → [{ id, title, script }]
   ├── dsl.js              → { generate, parse, compile, lineForTime }
   ├── playback.js         → { update, play, pause, isPlaying, setSpeed, getSpeed, getTime, setTime, getDuration, setClip }
   ├── faceCamera.js       → { camera, update, zoom }
   ├── viewport.js         → { render, dispose }
   ├── ui/timeline.js      → { setKeyframes, update, dispose }
-  └── ui/scriptPanel.js   → { getText, setText, onChange, showStatus, update, dispose }
+  └── ui/scriptPanel.js   → { getText, setText, onChange, setExamples, onSelectExample, showStatus, update, dispose }
 ```
 
 ## Unit system
@@ -74,6 +75,9 @@ Everything is in centimeters. BVH data is cm. GLB bone positions are cm. GLB mes
 - Transforms: mirror (L↔R swap), speed (time scaling), reverse (keyframe order)
 - Pose interpolation: slerp rotations, lerp positions, easing curves, hold beats
 - Low-level DSL (dsl.js) remains as compilation target — downstream unchanged
+- `examples.js` — 6 browseable HDSL example scripts (Choreography, Slow Motion, Mirror Dance, Rewind, Posed Sequence, Full Pirouette)
+- `ui/scriptPanel.js` — added example `<select>` dropdown with `setExamples`/`onSelectExample` API
+- `main.js` — default script from `examples[0]`, selector wired to compile pipeline
 
 ### Phase 7: Future
 - Animation quality: rest-pose offset corrections, crossfade/blending
@@ -82,5 +86,5 @@ Everything is in centimeters. BVH data is cm. GLB bone positions are cm. GLB mes
 
 ## Test commands
 
-- `npm test` — runs vitest, 97 tests, ~1.5s, no browser needed
+- `npm test` — runs vitest, 160 tests, ~2.5s, no browser needed
 - `npm run dev` — vite dev server with hot reload

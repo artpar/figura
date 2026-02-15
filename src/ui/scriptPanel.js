@@ -19,6 +19,10 @@ export function createScriptPanel() {
   title.textContent = 'Script';
   titleRow.appendChild(title);
 
+  const exampleSelect = document.createElement('select');
+  exampleSelect.className = 'sp-examples';
+  titleRow.appendChild(exampleSelect);
+
   const status = document.createElement('span');
   status.className = 'sp-status';
   titleRow.appendChild(status);
@@ -140,6 +144,12 @@ export function createScriptPanel() {
     }
   });
 
+  // --- Example select ---
+  let selectCallback = null;
+  exampleSelect.addEventListener('change', () => {
+    if (selectCallback) selectCallback(exampleSelect.value);
+  });
+
   // --- Debounced change ---
   let changeCallback = null;
   let debounceTimer = null;
@@ -220,6 +230,20 @@ export function createScriptPanel() {
 
     onChange(callback) {
       changeCallback = callback;
+    },
+
+    setExamples(list) {
+      exampleSelect.innerHTML = '';
+      for (const item of list) {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = item.title;
+        exampleSelect.appendChild(opt);
+      }
+    },
+
+    onSelectExample(callback) {
+      selectCallback = callback;
     },
 
     showStatus(text, color) {
