@@ -43,10 +43,10 @@ describe('faceCamera', () => {
 
     update();
 
-    // With identity quaternion, face forward is +Z, so camera should be at z = +140
+    // With identity quaternion, face forward is +Z, so camera should be at z = +440
     expect(camera.position.x).toBeCloseTo(0, 1);
     expect(camera.position.y).toBeCloseTo(160, 1);
-    expect(camera.position.z).toBeCloseTo(140, 1);
+    expect(camera.position.z).toBeCloseTo(440, 1);
   });
 
   it('camera follows head when bone moves', () => {
@@ -64,7 +64,7 @@ describe('faceCamera', () => {
 
     expect(camera.position.x).toBeCloseTo(10, 1);
     expect(camera.position.y).toBeCloseTo(170, 1);
-    expect(camera.position.z).toBeCloseTo(145, 1);
+    expect(camera.position.z).toBeCloseTo(445, 1);
   });
 
   it('camera follows head rotation', () => {
@@ -77,8 +77,8 @@ describe('faceCamera', () => {
 
     update();
 
-    // Camera should be 140cm in the +X direction
-    expect(camera.position.x).toBeCloseTo(140, 1);
+    // Camera should be 440cm in the +X direction
+    expect(camera.position.x).toBeCloseTo(440, 1);
     expect(camera.position.y).toBeCloseTo(160, 1);
     expect(camera.position.z).toBeCloseTo(0, 1);
   });

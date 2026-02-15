@@ -5,7 +5,7 @@ import * as THREE from 'three';
 // Adjust empirically if the GLB skeleton differs.
 const FACE_FORWARD_LOCAL = new THREE.Vector3(0, 0, 1);
 
-const DEFAULT_DISTANCE = 140;  // cm in front of face
+const DEFAULT_DISTANCE = 440;  // cm in front of face
 const MIN_DISTANCE      = 40;
 const MAX_DISTANCE      = 500;
 const EYE_OFFSET_Y      = 5;   // cm above head center for eye level
