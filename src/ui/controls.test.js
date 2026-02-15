@@ -33,55 +33,40 @@ describe('createControls', () => {
   it('creates expected DOM elements in container', () => {
     createControls(playback, container);
 
-    const btn = container.querySelector('.figura-play-btn');
-    const speedSlider = container.querySelector('.figura-speed-slider');
-    const scrubber = container.querySelector('.figura-scrubber');
-    const speedLabel = container.querySelector('.figura-speed-label');
-
-    expect(btn).not.toBeNull();
-    expect(speedSlider).not.toBeNull();
-    expect(scrubber).not.toBeNull();
-    expect(speedLabel).not.toBeNull();
+    expect(container.querySelector('.figura-play-btn')).not.toBeNull();
+    expect(container.querySelector('.figura-speed-slider')).not.toBeNull();
+    expect(container.querySelector('.figura-scrubber')).not.toBeNull();
+    expect(container.querySelector('.figura-speed-label')).not.toBeNull();
   });
 
   it('play/pause button calls playback.pause() when playing', () => {
     createControls(playback, container);
     const btn = container.querySelector('.figura-play-btn');
-
     btn.click();
-
     expect(playback.pause).toHaveBeenCalled();
   });
 
   it('play/pause button calls playback.play() when paused', () => {
     createControls(playback, container);
     const btn = container.querySelector('.figura-play-btn');
-
-    // First click pauses
-    btn.click();
-    // Second click plays
-    btn.click();
-
+    btn.click(); // pause
+    btn.click(); // play
     expect(playback.play).toHaveBeenCalled();
   });
 
   it('speed slider change calls playback.setSpeed()', () => {
     createControls(playback, container);
     const slider = container.querySelector('.figura-speed-slider');
-
     slider.value = '0.5';
     slider.dispatchEvent(new Event('input'));
-
     expect(playback.setSpeed).toHaveBeenCalledWith(0.5);
   });
 
   it('scrubber change calls playback.setTime()', () => {
     createControls(playback, container);
     const scrubber = container.querySelector('.figura-scrubber');
-
     scrubber.value = '5';
     scrubber.dispatchEvent(new Event('input'));
-
     expect(playback.setTime).toHaveBeenCalledWith(5);
   });
 
@@ -98,9 +83,7 @@ describe('createControls', () => {
   it('dispose() removes all child elements', () => {
     const ui = createControls(playback, container);
     expect(container.children.length).toBeGreaterThan(0);
-
     ui.dispose();
-
     expect(container.children.length).toBe(0);
   });
 });

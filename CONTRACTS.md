@@ -88,6 +88,32 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - Speed sets `action.timeScale` (per-action, not per-mixer).
 - Time is always in seconds.
 
+## camera.js
+
+| | |
+|---|---|
+| **Input** | `camera: THREE.PerspectiveCamera`, `controls: OrbitControls` |
+| **Output** | `{ setPreset(name), getPreset(), getAzimuth(), setAzimuth(angle), update() }` |
+| **Tests** | `camera.test.js` |
+
+**Presets (all cm):**
+
+| Name | Position | Target |
+|------|----------|--------|
+| front | (0, 350, -500) | (0, 30, 0) |
+| back | (0, 350, 500) | (0, 30, 0) |
+| side | (500, 350, 0) | (0, 30, 0) |
+| top | (0, 600, 1) | (0, 0, 0) |
+| close | (0, 220, -250) | (0, 70, 0) |
+
+**Invariants**
+- `update()` lerps camera position and controls target toward preset destination.
+- Transition stops when distance < 0.5 cm (snaps to exact position).
+- Manual orbit (OrbitControls `start` event) clears the active preset — `getPreset()` returns `null`.
+- `setPreset()` with an invalid name is a no-op.
+- `getAzimuth()` returns `atan2(offset.x, offset.z)` — the azimuthal angle (theta) of the camera relative to target.
+- `setAzimuth(angle)` rotates the camera around the target at the current distance and elevation. Clears active preset.
+
 ## ui/controls.js
 
 | | |
@@ -100,9 +126,27 @@ Every module has one contract. If a feature needs two contracts, it's two module
 
 **Invariants**
 - Reads/writes only through playback API. No direct mixer/action/clock access.
-- `update()` syncs scrubber position from `playback.getTime()`. Called from render loop.
+- `update()` syncs scrubber position from `playback.getTime()` and play button text. Called from render loop.
 - `dispose()` removes all DOM elements and event listeners.
 - All elements appended to `container`, not document.body.
+
+## ui/cameraPanel.js
+
+| | |
+|---|---|
+| **Input** | `camera: CameraHandle` |
+| **Output** | `{ update(): void, dispose(): void }` |
+| **Tests** | `ui/cameraPanel.test.js` |
+
+**DOM:** Circular view control widget (`position: fixed; bottom-right`), appended to `document.body`.
+
+**Invariants**
+- 4 direction buttons (F/B/S/T) at cardinal positions around a circular dark background.
+- Center dot button snaps to `close` preset.
+- Click a direction button: calls `camera.setPreset()` for that view.
+- `update()` toggles `.active` class on buttons matching `camera.getPreset()`.
+- `dispose()` removes widget from DOM.
+- Talks only through camera API (`setPreset`, `getPreset`), no direct Three.js access.
 
 ## main.js
 
@@ -115,9 +159,10 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - No logic, no transforms, no conditionals.
 - Loads assets via `bvh.js` and `character.js`.
 - Passes outputs to `retarget.js`, then to `playback.js`.
-- Creates playback via `createPlayback(mesh, clip)`.
+- Creates camera API via `createCamera(camera, controls)`.
 - Creates UI via `createControls(playback, container)`.
-- Render loop: `playback.update`, `ui.update`, `controls.update`, `renderer.render`.
+- Creates camera panel via `createCameraPanel(cameraApi)`.
+- Render loop: `playback.update`, `cameraApi.update`, `ui.update`, `camPanel.update`, `controls.update`, `renderer.render`.
 
 ## Rules for adding modules
 

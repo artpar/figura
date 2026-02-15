@@ -11,10 +11,10 @@ export function createScene(canvas) {
   scene.background = new THREE.Color(0x263238);
 
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
-  camera.position.set(0, 100, 300);
+  camera.position.set(0, 350, -500);
 
   const controls = new OrbitControls(camera, canvas);
-  controls.target.set(0, 85, 0);
+  controls.target.set(0, 30, 0);
   controls.update();
 
   const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1);

@@ -25,6 +25,8 @@
       color: #fff;
       font-family: system-ui, sans-serif;
       font-size: 14px;
+      width: 100%;
+      max-width: 900px;
     }
     .figura-play-btn {
       padding: 6px 16px;
@@ -34,13 +36,78 @@
       color: #000;
       font-size: 14px;
       cursor: pointer;
+      flex-shrink: 0;
     }
     .figura-speed-slider {
       width: 80px;
+      flex-shrink: 0;
+    }
+    .figura-speed-label {
+      flex-shrink: 0;
     }
     .figura-scrubber {
-      width: 200px;
+      flex: 1;
+      min-width: 80px;
     }
+    .figura-viewctl {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.45);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .figura-viewctl-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.08);
+      cursor: pointer;
+      padding: 0;
+    }
+    .figura-viewctl-center:hover {
+      background: rgba(255,255,255,0.2);
+      border-color: rgba(255,255,255,0.5);
+    }
+    .figura-viewctl-center.active {
+      background: rgba(255,255,255,0.3);
+      border-color: #fff;
+    }
+    .figura-viewctl-btn {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      color: rgba(255,255,255,0.55);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: system-ui, sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .figura-viewctl-btn:hover {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+    .figura-viewctl-btn.active {
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+    }
+    .figura-viewctl-top    { top: 4px;   left: 50%; transform: translateX(-50%); }
+    .figura-viewctl-bottom { bottom: 4px; left: 50%; transform: translateX(-50%); }
+    .figura-viewctl-left   { left: 4px;  top: 50%;  transform: translateY(-50%); }
+    .figura-viewctl-right  { right: 4px; top: 50%;  transform: translateY(-50%); }
   </style>
 </head>
 <body>
