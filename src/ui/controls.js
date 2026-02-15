@@ -60,6 +60,7 @@ export function createControls(playback, container) {
 
   return {
     update() {
+      scrubber.max = String(playback.getDuration());
       scrubber.value = String(playback.getTime());
       playBtn.textContent = playback.isPlaying() ? 'Pause' : 'Play';
     },

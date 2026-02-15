@@ -130,6 +130,18 @@ describe('createPlayback', () => {
     expect(pb.getTime()).toBe(clip.duration);
   });
 
+  it('setClip swaps the clip and plays it', () => {
+    const pb = createPlayback(targetMesh, clip);
+    pb.setSpeed(1.5);
+    // Create a second clip (just a trimmed copy for testing)
+    const clip2 = clip.clone();
+    clip2.duration = 1.0;
+    pb.setClip(clip2);
+    expect(pb.getDuration()).toBe(1.0);
+    expect(pb.isPlaying()).toBe(true);
+    expect(pb.getSpeed()).toBe(1.5);
+  });
+
   it('update() advances getTime() when playing', () => {
     const pb = createPlayback(targetMesh, clip);
     const t0 = pb.getTime();

@@ -6,14 +6,16 @@ See `CONTRACTS.md` for module contracts. Every module has one job and one tested
 
 ```
 main.js (orchestrator — wiring only, no logic)
-  ├── scene.js          → { scene, camera, renderer, controls }
-  ├── bvh.js            → { skeleton, clip }
-  ├── character.js      → { model, mesh }
-  ├── retarget.js       → AnimationClip
-  ├── playback.js       → { update, play, pause, isPlaying, setSpeed, getSpeed, getTime, setTime, getDuration }
+  ├── scene.js            → { scene, camera, renderer, controls }
+  ├── bvh.js              → { skeleton, clip }
+  ├── character.js        → { model, mesh }
+  ├── retarget.js         → AnimationClip
+  ├── dsl.js              → { generate, parse, compile }
+  ├── playback.js         → { update, play, pause, isPlaying, setSpeed, getSpeed, getTime, setTime, getDuration, setClip }
   ├── camera.js           → { setPreset, getPreset, getAzimuth, setAzimuth, update }
   ├── ui/controls.js      → { update, dispose }
-  └── ui/cameraPanel.js   → { update, dispose }
+  ├── ui/cameraPanel.js   → { update, dispose }
+  └── ui/scriptPanel.js   → { getText, setText, onChange, update, dispose }
 ```
 
 ## Unit system
@@ -38,9 +40,11 @@ Everything is in centimeters. BVH data is cm. GLB bone positions are cm. GLB mes
 - `playback.js` — mixer extracted from main.js, exposes play/pause/speed/time API
 - `ui/controls.js` — DOM controls that talk only through playback API
 
-### Phase 2: Animation quality
-- Extend `retarget.js` — optional rest-pose offset corrections
-- `blending.js` — crossfade and weight control across multiple clips
+### Phase 2: BVH Motion DSL (done)
+- `dsl.js` — generate/parse/compile DSL from BVH data, editable in script panel
+- `playback.js` — added `setClip()` for hot-swapping clips
+- `ui/scriptPanel.js` — simplified to DSL textarea (removed move chips)
+- Deleted `routine.js` and `moveLibrary.js` (premature abstractions)
 
 ### Phase 3: Polish (done — camera presets)
 - `camera.js` — camera preset API with smooth lerp transitions (front, back, side, top, close)
@@ -49,9 +53,10 @@ Everything is in centimeters. BVH data is cm. GLB bone positions are cm. GLB mes
 - IK deferred
 
 ### Phase 4: Future
+- Animation quality: rest-pose offset corrections, crossfade/blending
 - `ik.js` — post-process skeleton per frame (foot contact, ground locking)
 
 ## Test commands
 
-- `npm test` — runs vitest, 51 tests, ~1s, no browser needed
+- `npm test` — runs vitest, 78 tests, ~1.5s, no browser needed
 - `npm run dev` — vite dev server with hot reload

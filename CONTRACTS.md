@@ -80,6 +80,7 @@ Every module has one contract. If a feature needs two contracts, it's two module
 | `getTime()` | number | Current playback time in seconds. |
 | `setTime(t)` | void | Seek to time `t`. Clamps to `[0, duration]`. |
 | `getDuration()` | number | Clip duration in seconds. |
+| `setClip(clip)` | void | Stop current action, uncache it, play new clip. Preserves speed. |
 
 **Invariants**
 - Mixer created on `mesh` (SkinnedMesh), not Group.
@@ -87,6 +88,33 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - `play()`/`pause()` use `action.paused` property.
 - Speed sets `action.timeScale` (per-action, not per-mixer).
 - Time is always in seconds.
+- `setClip()` stops the old action, uncaches it, creates a new action for the new clip, preserves speed, and auto-plays.
+
+## dsl.js
+
+| | |
+|---|---|
+| **Input** | See individual functions |
+| **Output** | See individual functions |
+| **Tests** | `dsl.test.js` |
+
+**Functions:**
+
+| Function | Input | Output |
+|----------|-------|--------|
+| `generate(skeleton, clip, interval?)` | BVH skeleton + clip | DSL text string |
+| `parse(text)` | DSL text string | `{ duration, keyframes: [{ time, bones }] }` |
+| `compile(parsed, referenceSkeleton)` | Parsed DSL + skeleton | `{ skeleton, clip }` |
+
+**Invariants**
+- `generate` defaults to native frame rate (reads `clip.tracks[0].times`). Explicit `interval` overrides.
+- Rotations in Euler ZXY degrees (matching BVH channel order). Positions in cm.
+- Only the 19 `BONE_MAP` bones are included. Hip gets `pos` + `rot`, others get `rot` only.
+- DSL header: `duration`, `frametime`. Keyframes start with `@<time>`.
+- `parse` is pure string parsing — no Three.js dependency. Comments (`#`), `frametime`, and empty lines are ignored.
+- `compile` converts Euler degrees back to quaternions (ZXY order) and builds `QuaternionKeyframeTrack` + `VectorKeyframeTrack` (hip).
+- Round-trip fidelity at native frame rate: max 0.11° rotation error, 0.07 cm position error.
+- Track names use BVH bone names: `boneName.quaternion`, `hip.position`.
 
 ## camera.js
 
@@ -148,6 +176,23 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - `dispose()` removes widget from DOM.
 - Talks only through camera API (`setPreset`, `getPreset`), no direct Three.js access.
 
+## ui/scriptPanel.js
+
+| | |
+|---|---|
+| **Input** | (none) |
+| **Output** | `{ getText(), setText(text), onChange(callback), update(), dispose() }` |
+| **Tests** | `ui/scriptPanel.test.js` |
+
+**Invariants**
+- Textarea editor for DSL text with line number gutter.
+- Left-edge drag handle for resizing (min 200px, max 60% viewport).
+- Collapse/expand toggle button in header.
+- Tab key inserts 2 spaces.
+- `onChange(callback)` fires with 300ms debounce after user input.
+- Appended to `document.body`.
+- `dispose()` removes panel from DOM and cleans up document-level event listeners.
+
 ## main.js
 
 | | |
@@ -157,8 +202,10 @@ Every module has one contract. If a feature needs two contracts, it's two module
 
 **Invariants**
 - No logic, no transforms, no conditionals.
-- Loads assets via `bvh.js` and `character.js`.
-- Passes outputs to `retarget.js`, then to `playback.js`.
+- Loads BVH via `bvh.js`, character via `character.js`.
+- Generates DSL text from BVH skeleton+clip via `dsl.generate()`.
+- DSL text is the single source of truth. Both initial load and edits go through the same path: `parse → compile → retarget → playback`.
+- Shows DSL in script panel. On edit: `parse → compile → retarget → playback.setClip()`.
 - Creates camera API via `createCamera(camera, controls)`.
 - Creates UI via `createControls(playback, container)`.
 - Creates camera panel via `createCameraPanel(cameraApi)`.
