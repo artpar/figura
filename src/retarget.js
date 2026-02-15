@@ -1,6 +1,6 @@
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
-const BONE_MAP = {
+export const BONE_MAP = {
   mixamorigHips:           'hip',
   mixamorigSpine:          'abdomen',
   mixamorigSpine2:         'chest',
