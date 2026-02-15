@@ -6,7 +6,7 @@ BVH motion capture → GLTF character retargeting pipeline. Loads `pirouette.bvh
 
 ## Current state
 
-Rendering fixes applied. Camera, clipping, and unit system corrected. Regression test suite added — 19 tests guard the invariants that broke. Run `npm test`.
+Rendering fixes applied. Camera, clipping, unit system, and world matrix propagation corrected. Regression test suite added — 21 tests guard the invariants that broke. Run `npm test`.
 
 ## Architecture
 
@@ -14,7 +14,7 @@ Rendering fixes applied. Camera, clipping, and unit system corrected. Regression
 main.js              orchestrator — load, retarget, play, render loop
   scene.js           renderer, camera, lights, ground, OrbitControls, resize
   bvh.js             BVHLoader — no transforms, data stays in native cm
-  character.js       GLTFLoader → extracts SkinnedMesh (mesh) + scene (model)
+  character.js       GLTFLoader → extracts SkinnedMesh (mesh) + scene (model), applies S(100) + updateMatrixWorld
   retarget.js        bone name map + SkeletonUtils.retargetClip wrapper
   scene.test.js      scene boundary invariants (cm-scale)
   bvh.test.js        BVH data purity (no unit conversions)
@@ -77,10 +77,11 @@ Unmapped BVH bones (skipped): `lButtock`, `rButtock`, `leftEye`, `rightEye`, fin
 | mixer root | Tracks like `.bones[name].quaternion` unresolvable from Group | `AnimationMixer(character.model)` — Group has no `.bones` | `AnimationMixer(character.mesh)` |
 | unit mismatch | Camera 100x too close, far-plane clipping, legs under floor | BVH scaled cm→m but character stayed in cm. retargetClip's `scale` option only affects hip position, not child bone offsets — creates cascading unit mismatch | Removed cm→m conversion from bvh.js. Both sources now in native cm. Scene boundaries set to cm. |
 | frustum culling | Limbs disappear when rotating/zooming | SkinnedMesh bounding sphere stays at rest pose. Animated limbs outside it get culled. | `frustumCulled = false` on all SkinnedMesh |
+| stale world matrix | Character invisible (rendered ~100m above camera) | `model.scale.setScalar(100)` not followed by `updateMatrixWorld(true)`. Retarget read Armature's stale `S(0.01)` world matrix, inflating hip positions 100x. | Added `model.updateMatrixWorld(true)` after scale |
 
 ## Test suite
 
-`npm test` runs vitest with 19 tests across 4 files:
+`npm test` runs vitest with 21 tests across 4 files:
 
 | File | Tests | What it guards |
 |------|-------|----------------|
