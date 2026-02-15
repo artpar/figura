@@ -59,7 +59,7 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - All boundaries (camera near/far, position, controls target, ground size, light positions, shadow camera) are in cm.
 - Camera near >= 1 cm, far >= 10000 cm.
 - Ground plane >= 100 cm.
-- Resize handler installed on window.
+- No resize handler — caller (viewport.js) manages resize.
 
 ## playback.js
 
@@ -144,6 +144,42 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - `getAzimuth()` returns `atan2(offset.x, offset.z)` — the azimuthal angle (theta) of the camera relative to target.
 - `setAzimuth(angle)` rotates the camera around the target at the current distance and elevation. Clears active preset.
 
+## faceCamera.js
+
+| | |
+|---|---|
+| **Input** | `headBone: THREE.Bone` |
+| **Output** | `{ camera: THREE.PerspectiveCamera, update(): void, zoom(deltaY): void }` |
+| **Tests** | `faceCamera.test.js` |
+
+**Invariants**
+- PerspectiveCamera with FOV 50, near=1, far=5000 (cm-scale).
+- `update()` reads head bone world position/quaternion, places camera ~140cm in front of face.
+- Camera looks at eye level (~5cm above head center).
+- No unit conversions — head bone world position is already in cm.
+- Aspect ratio set externally by viewport.js.
+- `zoom(deltaY)` adjusts camera distance (multiplicative, clamped 40–500cm). Positive = zoom out.
+- `FACE_FORWARD_LOCAL` defines which local axis is the face direction (empirically determined per skeleton).
+
+## viewport.js
+
+| | |
+|---|---|
+| **Input** | `renderer, canvas, cameras: Array<Camera|null>[4], scene, controls, onWheel?: Array<fn|null>[4]` |
+| **Output** | `{ render(): void, dispose(): void }` |
+| **Tests** | `viewport.test.js` |
+
+**Invariants**
+- 2x2 grid: cameras[0] top-left, [1] top-right, [2] bottom-left, [3] bottom-right.
+- Null entries are skipped (empty quadrant, cleared background).
+- `cameras[0]` is the interactive orbit camera — OrbitControls only active in top-left quadrant.
+- `render()` uses `setScissor()`/`setViewport()` to render each non-null camera on a single canvas.
+- Reads dimensions from `canvas.parentElement` (container). ResizeObserver auto-relayouts on container size changes.
+- `onWheel` array routes scroll events to per-quadrant callbacks (e.g. face camera zoom).
+- OrbitControls gated: capture-phase `pointerdown` disables controls outside top-left quadrant, `pointerup` re-enables.
+- 6px draggable separator cross (horizontal + vertical `<div>`s). Drag to resize quadrants (clamped 15%–85%).
+- `dispose()` removes resize listener, drag listeners, pointer listeners, and separators.
+
 ## ui/controls.js
 
 | | |
@@ -209,10 +245,12 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - Generates DSL text from BVH skeleton+clip via `dsl.generate()`.
 - DSL text is the single source of truth. Both initial load and edits go through the same path: `parse → compile → retarget → playback`.
 - Shows DSL in script panel. On edit: `parse → compile → retarget → playback.setClip()`.
+- Finds `mixamorigHead` bone and creates face camera via `createFaceCamera(headBone)`.
+- Creates viewport via `createViewport(renderer, canvas, [cameras...], scene, controls, [onWheel...])`.
 - Creates camera API via `createCamera(camera, controls)`.
 - Creates UI via `createControls(playback, container)`.
 - Creates camera panel via `createCameraPanel(cameraApi)`.
-- Render loop: `playback.update`, `cameraApi.update`, `ui.update`, `camPanel.update`, `controls.update`, `renderer.render`.
+- Render loop: `playback.update`, `cameraApi.update`, `ui.update`, `camPanel.update`, `controls.update`, `faceView.update`, `viewport.render`.
 
 ## Rules for adding modules
 

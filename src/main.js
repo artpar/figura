@@ -5,6 +5,8 @@ import { retargetAnimation } from './retarget.js';
 import { createPlayback } from './playback.js';
 import { generate, parse, compile } from './dsl.js';
 import { createCamera } from './camera.js';
+import { createFaceCamera } from './faceCamera.js';
+import { createViewport } from './viewport.js';
 import { createControls } from './ui/controls.js';
 import { createCameraPanel } from './ui/cameraPanel.js';
 import { createScriptPanel } from './ui/scriptPanel.js';
@@ -40,6 +42,15 @@ scriptPanel.onChange((text) => {
   }
 });
 
+const headBone = character.mesh.skeleton.bones.find(b => b.name === 'mixamorigHead');
+const faceView = createFaceCamera(headBone);
+const viewport = createViewport(
+  renderer, canvas,
+  [camera, faceView.camera, null, null],
+  scene, controls,
+  [null, (dy) => faceView.zoom(dy), null, null]
+);
+
 const cameraApi = createCamera(camera, controls);
 const ui = createControls(playback, document.getElementById('controls'));
 const camPanel = createCameraPanel(cameraApi);
@@ -51,7 +62,8 @@ function animate() {
   ui.update();
   camPanel.update();
   controls.update();
-  renderer.render(scene, camera);
+  faceView.update();
+  viewport.render();
 }
 
 animate();

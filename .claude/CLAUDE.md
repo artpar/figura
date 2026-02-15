@@ -13,6 +13,8 @@ main.js (orchestrator — wiring only, no logic)
   ├── dsl.js              → { generate, parse, compile }
   ├── playback.js         → { update, play, pause, isPlaying, setSpeed, getSpeed, getTime, setTime, getDuration, setClip }
   ├── camera.js           → { setPreset, getPreset, getAzimuth, setAzimuth, update }
+  ├── faceCamera.js       → { camera, update, zoom }
+  ├── viewport.js         → { render, dispose }
   ├── ui/controls.js      → { update, dispose }
   ├── ui/cameraPanel.js   → { update, dispose }
   └── ui/scriptPanel.js   → { getText, setText, onChange, showStatus, update, dispose }
@@ -52,11 +54,17 @@ Everything is in centimeters. BVH data is cm. GLB bone positions are cm. GLB mes
 - `ui/controls.js` reverted to `(playback, container)` — playback only
 - IK deferred
 
-### Phase 4: Future
+### Phase 4: Split-pane face camera (done)
+- `faceCamera.js` — face-tracking camera that follows head bone, scroll-to-zoom
+- `viewport.js` — scissor-based 2x2 grid with draggable dividers, ResizeObserver-driven layout
+- `scene.js` — resize handler removed (viewport.js owns it now)
+- `index.html` — flex layout: canvas-wrap + script panel as siblings (panel owns its space)
+
+### Phase 5: Future
 - Animation quality: rest-pose offset corrections, crossfade/blending
 - `ik.js` — post-process skeleton per frame (foot contact, ground locking)
 
 ## Test commands
 
-- `npm test` — runs vitest, 82 tests, ~1.5s, no browser needed
+- `npm test` — runs vitest, 97 tests, ~1.5s, no browser needed
 - `npm run dev` — vite dev server with hot reload
