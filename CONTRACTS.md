@@ -118,32 +118,6 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - Round-trip fidelity at native frame rate: max 0.11° rotation error, 0.07 cm position error.
 - Track names use BVH bone names: `boneName.quaternion`, `hip.position`.
 
-## camera.js
-
-| | |
-|---|---|
-| **Input** | `camera: THREE.PerspectiveCamera`, `controls: OrbitControls` |
-| **Output** | `{ setPreset(name), getPreset(), getAzimuth(), setAzimuth(angle), update() }` |
-| **Tests** | `camera.test.js` |
-
-**Presets (all cm):**
-
-| Name | Position | Target |
-|------|----------|--------|
-| front | (0, 350, -500) | (0, 30, 0) |
-| back | (0, 350, 500) | (0, 30, 0) |
-| side | (500, 350, 0) | (0, 30, 0) |
-| top | (0, 600, 1) | (0, 0, 0) |
-| close | (0, 220, -250) | (0, 70, 0) |
-
-**Invariants**
-- `update()` lerps camera position and controls target toward preset destination.
-- Transition stops when distance < 0.5 cm (snaps to exact position).
-- Manual orbit (OrbitControls `start` event) clears the active preset — `getPreset()` returns `null`.
-- `setPreset()` with an invalid name is a no-op.
-- `getAzimuth()` returns `atan2(offset.x, offset.z)` — the azimuthal angle (theta) of the camera relative to target.
-- `setAzimuth(angle)` rotates the camera around the target at the current distance and elevation. Clears active preset.
-
 ## faceCamera.js
 
 | | |
@@ -180,39 +154,27 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - 6px draggable separator cross (horizontal + vertical `<div>`s). Drag to resize quadrants (clamped 15%–85%).
 - `dispose()` removes resize listener, drag listeners, pointer listeners, and separators.
 
-## ui/controls.js
+## ui/timeline.js
 
 | | |
 |---|---|
 | **Input** | `playback: PlaybackHandle`, `container: HTMLElement` |
-| **Output** | `{ update(): void, dispose(): void }` |
-| **Tests** | `ui/controls.test.js` |
+| **Output** | `{ setKeyframes(parsed): void, update(): void, dispose(): void }` |
+| **Tests** | `ui/timeline.test.js` |
 
-**DOM elements:** play/pause button, speed slider (0.25x–2x), time scrubber (0 to duration).
+**Also exports:** `computeWaveforms(parsed)` — pure function for testing.
+
+**DOM:** Transport bar (play/pause, time display, speed select) + canvas (time ruler, 5 body-group waveform lanes, playhead).
+
+**Body groups:** Spine (hip/abdomen/chest/neck/head), L Arm, R Arm, L Leg, R Leg — each with a distinct color.
 
 **Invariants**
 - Reads/writes only through playback API. No direct mixer/action/clock access.
-- `update()` syncs scrubber position from `playback.getTime()` and play button text. Called from render loop.
+- `setKeyframes(parsed)` recomputes waveforms from parsed DSL data (rotation deltas per group, normalized to [0,1]).
+- `update()` redraws canvas (playhead, transport state). Called from render loop.
+- Click/drag on canvas scrubs via `playback.setTime()`.
 - `dispose()` removes all DOM elements and event listeners.
 - All elements appended to `container`, not document.body.
-
-## ui/cameraPanel.js
-
-| | |
-|---|---|
-| **Input** | `camera: CameraHandle` |
-| **Output** | `{ update(): void, dispose(): void }` |
-| **Tests** | `ui/cameraPanel.test.js` |
-
-**DOM:** Circular view control widget (`position: fixed; bottom-right`), appended to `document.body`.
-
-**Invariants**
-- 4 direction buttons (F/B/S/T) at cardinal positions around a circular dark background.
-- Center dot button snaps to `close` preset.
-- Click a direction button: calls `camera.setPreset()` for that view.
-- `update()` toggles `.active` class on buttons matching `camera.getPreset()`.
-- `dispose()` removes widget from DOM.
-- Talks only through camera API (`setPreset`, `getPreset`), no direct Three.js access.
 
 ## ui/scriptPanel.js
 
@@ -247,10 +209,8 @@ Every module has one contract. If a feature needs two contracts, it's two module
 - Shows DSL in script panel. On edit: `parse → compile → retarget → playback.setClip()`.
 - Finds `mixamorigHead` bone and creates face camera via `createFaceCamera(headBone)`.
 - Creates viewport via `createViewport(renderer, canvas, [cameras...], scene, controls, [onWheel...])`.
-- Creates camera API via `createCamera(camera, controls)`.
-- Creates UI via `createControls(playback, container)`.
-- Creates camera panel via `createCameraPanel(cameraApi)`.
-- Render loop: `playback.update`, `cameraApi.update`, `ui.update`, `camPanel.update`, `controls.update`, `faceView.update`, `viewport.render`.
+- Creates timeline via `createTimeline(playback, container)`. Calls `timeline.setKeyframes(parsed)` on initial load and DSL edits.
+- Render loop: `playback.update`, `timeline.update`, `controls.update`, `faceView.update`, `viewport.render`.
 
 ## Rules for adding modules
 

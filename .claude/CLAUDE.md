@@ -12,11 +12,9 @@ main.js (orchestrator — wiring only, no logic)
   ├── retarget.js         → AnimationClip
   ├── dsl.js              → { generate, parse, compile }
   ├── playback.js         → { update, play, pause, isPlaying, setSpeed, getSpeed, getTime, setTime, getDuration, setClip }
-  ├── camera.js           → { setPreset, getPreset, getAzimuth, setAzimuth, update }
   ├── faceCamera.js       → { camera, update, zoom }
   ├── viewport.js         → { render, dispose }
-  ├── ui/controls.js      → { update, dispose }
-  ├── ui/cameraPanel.js   → { update, dispose }
+  ├── ui/timeline.js      → { setKeyframes, update, dispose }
   └── ui/scriptPanel.js   → { getText, setText, onChange, showStatus, update, dispose }
 ```
 
@@ -40,7 +38,7 @@ Everything is in centimeters. BVH data is cm. GLB bone positions are cm. GLB mes
 
 ### Phase 1: Playback control (done)
 - `playback.js` — mixer extracted from main.js, exposes play/pause/speed/time API
-- `ui/controls.js` — DOM controls that talk only through playback API
+- `ui/timeline.js` — DAW-style timeline panel with body-group waveform tracks, transport controls, and scrubbing (replaced `ui/controls.js`)
 
 ### Phase 2: BVH Motion DSL (done)
 - `dsl.js` — generate/parse/compile DSL from BVH data, editable in script panel
@@ -48,10 +46,7 @@ Everything is in centimeters. BVH data is cm. GLB bone positions are cm. GLB mes
 - `ui/scriptPanel.js` — simplified to DSL textarea (removed move chips)
 - Deleted `routine.js` and `moveLibrary.js` (premature abstractions)
 
-### Phase 3: Polish (done — camera presets)
-- `camera.js` — camera preset API with smooth lerp transitions (front, back, side, top, close)
-- `ui/cameraPanel.js` — floating button panel (top-right), highlights active preset
-- `ui/controls.js` reverted to `(playback, container)` — playback only
+### Phase 3: Polish (done)
 - IK deferred
 
 ### Phase 4: Split-pane face camera (done)
@@ -60,7 +55,16 @@ Everything is in centimeters. BVH data is cm. GLB bone positions are cm. GLB mes
 - `scene.js` — resize handler removed (viewport.js owns it now)
 - `index.html` — flex layout: canvas-wrap + script panel as siblings (panel owns its space)
 
-### Phase 5: Future
+### Phase 5: DAW-style timeline (done)
+- `ui/timeline.js` — replaces `ui/controls.js` with a permanent bottom panel
+- Transport bar: play/pause, time display (MM:SS.cc), speed select (0.25x–2x)
+- Canvas: time ruler, 5 body-group waveform lanes (Spine, L/R Arm, L/R Leg), sweeping playhead
+- Waveform = per-group sum of frame-to-frame rotation deltas, normalized to [0,1]
+- Click/drag scrubbing on canvas
+- `index.html` — `#main-col` column wrapper stacks viewport + timeline; `#canvas-wrap` unchanged for viewport.js
+- Removed `camera.js` and `ui/cameraPanel.js` (camera preset widget)
+
+### Phase 6: Future
 - Animation quality: rest-pose offset corrections, crossfade/blending
 - `ik.js` — post-process skeleton per frame (foot contact, ground locking)
 

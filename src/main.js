@@ -4,11 +4,9 @@ import { loadCharacter } from './character.js';
 import { retargetAnimation } from './retarget.js';
 import { createPlayback } from './playback.js';
 import { generate, parse, compile } from './dsl.js';
-import { createCamera } from './camera.js';
 import { createFaceCamera } from './faceCamera.js';
 import { createViewport } from './viewport.js';
-import { createControls } from './ui/controls.js';
-import { createCameraPanel } from './ui/cameraPanel.js';
+import { createTimeline } from './ui/timeline.js';
 import { createScriptPanel } from './ui/scriptPanel.js';
 
 const canvas = document.getElementById('viewport');
@@ -20,21 +18,25 @@ scene.add(character.model);
 
 const dslText = generate(bvhSkeleton, bvhClip, 1/30);
 
-function clipFromDSL(text) {
-  const parsed = parse(text);
-  const { skeleton, clip } = compile(parsed, bvhSkeleton);
-  return retargetAnimation(character.mesh, skeleton, clip);
-}
+const parsed = parse(dslText);
+const { skeleton: compiledSkel, clip: compiledClip } = compile(parsed, bvhSkeleton);
+const initialClip = retargetAnimation(character.mesh, compiledSkel, compiledClip);
 
-const playback = createPlayback(character.mesh, clipFromDSL(dslText));
+const playback = createPlayback(character.mesh, initialClip);
+
+const timeline = createTimeline(playback, document.getElementById('timeline'));
+timeline.setKeyframes(parsed);
 
 const scriptPanel = createScriptPanel();
 scriptPanel.setText(dslText);
 
 scriptPanel.onChange((text) => {
   try {
-    const retClip = clipFromDSL(text);
+    const p = parse(text);
+    const { skeleton: s, clip: c } = compile(p, bvhSkeleton);
+    const retClip = retargetAnimation(character.mesh, s, c);
     playback.setClip(retClip);
+    timeline.setKeyframes(p);
     scriptPanel.showStatus('Applied', '#4f4');
   } catch (e) {
     console.error('DSL compile error:', e);
@@ -51,16 +53,10 @@ const viewport = createViewport(
   [null, (dy) => faceView.zoom(dy), null, null]
 );
 
-const cameraApi = createCamera(camera, controls);
-const ui = createControls(playback, document.getElementById('controls'));
-const camPanel = createCameraPanel(cameraApi);
-
 function animate() {
   requestAnimationFrame(animate);
   playback.update();
-  cameraApi.update();
-  ui.update();
-  camPanel.update();
+  timeline.update();
   controls.update();
   faceView.update();
   viewport.render();
